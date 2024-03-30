@@ -1,0 +1,28 @@
+query=' query get_all_orders($pageSize: Int!, $cursor: String) { orders(first: $pageSize, after: $cursor,query: "created_at:>2024-02-07T00:00:00Z AND created_at:<2024-02-9T00:00:00Z") { edges { node { cancelReason cartDiscountAmount channel { handle name overviewPath } clientIp closedAt confirmed createdAt currentTotalWeight customerLocale customerAcceptsMarketing edited email id name note refundable returnStatus riskLevel subtotalPrice tags totalDiscounts totalPrice totalReceived totalRefunded totalShippingPrice totalTax totalWeight updatedAt     lineItems(first: 250) {edges {node {sku variantTitle discountedUnitPriceSet { presentmentMoney { amount}} discountAllocations {allocatedAmount {amount}}taxLines {price} quantity product {handle productType tags title totalInventory totalVariants vendor description(truncateAt: 1000) customProductType} variant { price sku inventoryQuantity inventoryItem { sku unitCost { amount}}} }} }   refunds(first: 250) { refundLineItems(first: 250) { edges { node { lineItem { sku} restockType restocked quantity  price totalTax }}}}    } } pageInfo { endCursor hasNextPage hasPreviousPage startCursor } } }'
+def data_extract(query):
+    store_name = ''
+    access_token = ''
+    api_version = '2023-07' 
+    graphql_endpoint = f"https://{store_name}.myshopify.com/admin/api/{api_version}/graphql.json"
+    headers = {
+    'X-Shopify-Access-Token': access_token,
+    'Content-Type': 'application/json'}
+    variables = {
+    "pageSize": 15,  
+    "cursor": None}
+    container = []    
+    try:
+        while True:
+            response = requests.post(graphql_endpoint, json={'query': query,'variables': variables}, headers=headers)
+            result = response.json()
+            container.append(result)
+            has_next_page = result.get('data', {}).get('orders', {}).get('pageInfo', {}).get('hasNextPage', False)
+            if has_next_page:
+                variables['cursor'] = result['data']['orders']['pageInfo']['endCursor']
+            else:
+                break
+    except Exception as e:
+        print(f"Exception: {e}")
+    return container
+
+data_extract(query)
